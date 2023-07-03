@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "age-prediction"
+version = "0.1.0"
+description = "Model for age prediction"
+authors = ["matheus-tx <matheus.tx30@gmail.com>"]
+license = "None, I think"
+readme = "README.md"
+packages = [{include = "age_prediction"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+numpy = "^1.25.0"
+pillow = "^10.0.0"
+omegaconf = "^2.3.0"
+pre-commit = "^3.3.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
