@@ -1,18 +1,15 @@
 import os
-from typing import Any
 
 import numpy as np
 import numpy.typing as npt
 import tensorflow as tf
-from keras.activations import sigmoid, softplus
-from keras.applications import VGG19, InceptionResNetV2
+from keras.activations import softplus
+from keras.applications import VGG19, EfficientNetV2L
 from keras.callbacks import ReduceLROnPlateau
-from keras.layers import Concatenate, Dense, Flatten, Input
-from keras.losses import mean_absolute_error
+from keras.layers import Dense, Flatten, Input
 from keras.models import Model
 from keras.optimizers import AdamW
 from keras.src.engine.keras_tensor import KerasTensor
-from keras_vggface.vggface import VGGFace
 from omegaconf import DictConfig
 from tensorflow_probability.python.distributions import Distribution, Poisson
 from tensorflow_probability.python.layers import DistributionLambda
@@ -47,16 +44,14 @@ class PoissonAgePredictor:
                                    include_top=False,
                                    weights='imagenet')(input)
         vgg19.trainable = False
-
         flatten: KerasTensor = Flatten(name='flatten')(vgg19)
-        # fc1: KerasTensor = Dense(2048, activation="relu", name="fc1")(flatten)
-        # fc2: KerasTensor = Dense(2048, activation="relu", name="fc2")(fc1)
-
+        fc1: KerasTensor = Dense(2048, activation="relu", name="fc1")(flatten)
+        fc2: KerasTensor = Dense(2048, activation="relu", name="fc2")(fc1)
         rate: KerasTensor = Dense(
             units=1,
             activation=softplus,
             name='rate'
-        )(flatten)
+        )(fc2)
         output: KerasTensor = DistributionLambda(
             lambda t: Poisson(rate=t,
                               validate_args=True,
@@ -64,22 +59,17 @@ class PoissonAgePredictor:
             convert_to_tensor_fn=Distribution.mode,
             name='output'
         )(rate)
-
-        # output: KerasTensor = Dense(units=1,
-        #                             activation=softplus,
-        #                             name='output')(flatten)
-
         self.model: Model = Model(
             inputs=input,
             outputs=output
         )
 
+        # Compile model
         self.model.compile(
             optimizer=AdamW(
                 learning_rate=1e-4
             ),
             loss=negloglik
-            # loss=mean_absolute_error
         )
 
     def fit(self: Self) -> None:
