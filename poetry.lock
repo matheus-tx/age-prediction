@@ -801,6 +801,48 @@ files = [
 ]
 
 [[package]]
+name = "keras-applications"
+version = "1.0.8"
+description = "Reference implementations of popular deep learning models"
+optional = false
+python-versions = "*"
+files = [
+    {file = "Keras_Applications-1.0.8-py3-none-any.whl", hash = "sha256:df4323692b8c1174af821bf906f1e442e63fa7589bf0f1230a0b6bdc5a810c95"},
+    {file = "Keras_Applications-1.0.8.tar.gz", hash = "sha256:5579f9a12bcde9748f4a12233925a59b93b73ae6947409ff34aa2ba258189fe5"},
+]
+
+[package.dependencies]
+h5py = "*"
+numpy = ">=1.9.1"
+
+[package.extras]
+tests = ["pytest", "pytest-cov", "pytest-pep8", "pytest-xdist"]
+
+[[package]]
+name = "keras-vggface"
+version = "0.6"
+description = "VGGFace implementation with Keras framework"
+optional = false
+python-versions = "*"
+files = [
+    {file = "keras_vggface-0.6-py3-none-any.whl", hash = "sha256:22698dadf122650305c419239c84f3cc6eba3c34ebf8d9485c014491ea541f83"},
+    {file = "keras_vggface-0.6.tar.gz", hash = "sha256:066264b76d4055e4616a15cc3a0413dd1f3672a8886771b77a42a1ff2a915551"},
+]
+
+[package.dependencies]
+h5py = "*"
+keras = "*"
+numpy = ">=1.9.1"
+pillow = "*"
+pyyaml = "*"
+scipy = ">=0.14"
+six = ">=1.9.0"
+
+[package.extras]
+tf = ["tensorflow"]
+tf-gpu = ["tensorflow-gpu"]
+
+[[package]]
 name = "libclang"
 version = "16.0.0"
 description = "Clang Python Bindings, mirrored from the official LLVM repo: https://github.com/llvm/llvm-project/tree/main/clang/bindings/python, to make the installation process easier."
@@ -2039,4 +2081,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10, <3.12"
-content-hash = "d1e1092aff5162552d726581d40f0d1bacae4acdc2a334b9107e21c00d308696"
+content-hash = "7b06f37c64b98c21ad7a2eb69984c1ea4c6b3eca3056f85570406e05fdb2101c"
