@@ -46,7 +46,7 @@ def _scale(x: npt.NDArray[np.float32],
                                            255,
                                            dtype=np.float32)
 
-    y_age: npt.NDArray[np.float32] = y[:, 0].reshape(-1, 1) / 255
+    y_age: npt.NDArray[np.float32] = y[:, 0].reshape(-1, 1)
     y_gender: npt.NDArray[np.float32] = y[:, 1].reshape(-1, 1)
     y_race: npt.NDArray[np.float32] = \
         OneHotEncoder().fit_transform(y[:, 2].reshape(-1, 1))

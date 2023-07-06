@@ -3,7 +3,7 @@ import argparse
 import hydra
 from omegaconf import DictConfig
 
-from modelling.model import NegativeBinomialVGGFace
+from modelling.model import PoissonAgePredictor
 from preprocessing import Dataset, preprocess
 
 if __name__ == '__main__':
@@ -27,8 +27,8 @@ if __name__ == '__main__':
     dataset: Dataset = preprocess(project_config=project_config,
                                   run_config=run_config)
 
-    model = NegativeBinomialVGGFace(data=dataset,
-                                    config=run_config)
+    model = PoissonAgePredictor(data=dataset,
+                                config=run_config)
     model.fit()
 
     pass
