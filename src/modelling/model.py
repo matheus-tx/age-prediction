@@ -1,17 +1,22 @@
 import os
 
 import tensorflow as tf
+from keras.activations import sigmoid, softplus
 from keras.applications import VGG19
+from keras.callbacks import ReduceLROnPlateau
 from keras.layers import Concatenate, Dense, Flatten, Input
+from keras.losses import mean_absolute_error
 from keras.models import Model
 from keras.optimizers import AdamW
+from keras.src.engine.keras_tensor import KerasTensor
+from keras_vggface.vggface import VGGFace
 from omegaconf import DictConfig
 from tensorflow_probability.python.distributions import (Distribution,
                                                          NegativeBinomial)
 from tensorflow_probability.python.layers import DistributionLambda
 from typing_extensions import Self
 
-from preprocessing import Dataset
+from preprocessing import Dataset, TrainValTest
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
@@ -22,75 +27,80 @@ def negloglik(y: tf.Tensor, p_y: Distribution) -> tf.Tensor:
     return negloglik
 
 
-class NegativeBinomialVGG19:
+class NegativeBinomialVGGFace:
     def __init__(self: Self,
                  data: Dataset,
                  config: DictConfig) -> Self:
-        self.x_picture = data.x_picture
-        self.x_feature = data.x_feature
-        self.y = data.y
+        # Attributes
+        self.x: TrainValTest = data.x
+        self.y_age: TrainValTest = data.y_age
+        self.y_gender: TrainValTest = data.y_gender
+        self.y_race: TrainValTest = data.y_race
 
-        input_picture = Input(shape=self.x_picture.train.shape[1:],
-                              name='input_picture')
-        input_feature = Input(shape=self.x_feature.train.shape[1:],
-                              name='input_feature')
+        # Model definition
+        input_shape: tuple = self.x.train.shape[1:]
+        input: KerasTensor = Input(shape=input_shape, name='input')
 
-        vgg19 = VGG19(input_shape=self.x_picture.train.shape[1:],
-                      include_top=False,
-                      weights='imagenet')(input_picture)
+        vgg19: KerasTensor = VGG19(input_shape=input_shape,
+                                   include_top=False,
+                                   weights='imagenet')(input)
         vgg19.trainable = False
 
-        x = Flatten(name='flatten')(vgg19)
-        x = Dense(2048, activation="relu", name="fc1")(x)
-        x = Dense(2048, activation="relu", name="fc2")(x)
+        flatten: KerasTensor = Flatten(name='flatten')(vgg19)
+        # fc1: KerasTensor = Dense(2048, activation="relu", name="fc1")(flatten)
+        # fc2: KerasTensor = Dense(2048, activation="relu", name="fc2")(fc1)
 
-        feature_vector: Concatenate = Concatenate(
-            axis=-1,
-            name='concat_params'
-        )([x, input_feature])
+        # total_count: KerasTensor = Dense(
+        #     units=1,
+        #     activation=softplus,
+        #     name='total_count'
+        # )(feature_vector)
+        # prob: KerasTensor = Dense(
+        #     units=1,
+        #     activation=sigmoid,
+        #     name='prob'
+        # )(feature_vector)
 
-        total_count: Dense = Dense(
-            units=1,
-            activation='softplus',
-            name='total_count'
-        )(feature_vector)
-        prob: Dense = Dense(
-            units=1,
-            activation='sigmoid',
-            name='prob'
-        )(feature_vector)
+        # params: KerasTensor = Concatenate(
+        #     axis=-1,
+        #     name='concat_params'
+        # )([total_count, prob])
 
-        params: Concatenate = Concatenate(
-            axis=-1,
-            name='concat_params'
-        )([total_count, prob])
+        # output: DistributionLambda = DistributionLambda(
+        #     lambda t: NegativeBinomial(
+        #         total_count=t[:, 0],
+        #         probs=t[:, 1],
+        #         validate_args=True,
+        #         allow_nan_stats=False,
+        #         require_integer_total_count=False
+        #     ),
+        #     convert_to_tensor_fn=Distribution.mode,
+        #     name='output'
+        # )(params)
 
-        output: DistributionLambda = DistributionLambda(
-            lambda t: NegativeBinomial(
-                total_count=total_count,
-                probs=prob,
-                validate_args=True,
-                allow_nan_stats=False
-            ),
-            convert_to_tensor_fn=Distribution.mode,
-            name='output'
-        )(params)
+        output: KerasTensor = Dense(units=1,
+                                    activation=softplus,
+                                    name='output')(flatten)
 
         self.model: Model = Model(
-            input=[input_picture, input_feature],
-            output=output
+            inputs=input,
+            outputs=output
         )
 
         self.model.compile(
-            optimizer=AdamW(),
-            loss=negloglik
+            optimizer=AdamW(
+                learning_rate=1e-4
+            ),
+            # loss=negloglik
+            loss=mean_absolute_error
         )
 
     def fit(self) -> None:
         self.model.fit(
-            x=[self.x_picture.train, self.x_feature.train],
-            y=self.y.train,
+            x=self.x.train,
+            y=self.y_age.train,
             batch_size=64,
-            validation_data=[[self.x_picture.val, self.x_feature.val],
-                             self.y.val]
+            validation_data=[self.x.val, self.y_age.val],
+            epochs=10,
+            callbacks=[ReduceLROnPlateau()]
         )

@@ -1,17 +1,19 @@
-from PIL import Image
-from omegaconf import DictConfig
-import numpy as np
-import numpy.typing as npt
+import re
 from glob import glob
 from typing import Any
-import re
+
+import numpy as np
+import numpy.typing as npt
+from omegaconf import DictConfig
+from PIL import Image
 
 EXPECTED_FEATURE_SHAPE: tuple[int] = (4, )
 NEW_PICTURE_SHAPE: tuple[int] = (100, 100)
 
+
 def load_(
     config: DictConfig
-) -> tuple[npt.NDArray[np.uint8], npt.NDArray[np.uint8]]:
+) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
     """"Load
 
     Load all image and feature data. It does so because features are encoded
@@ -27,28 +29,26 @@ def load_(
     """
     image_files = glob(f'{config.data.path}/*.jpg')
 
-    images: list[npt.NDArray[np.uint8]] = []
-    feature_list: list[npt.NDArray[np.uint8]] = []
+    images: list[npt.NDArray[np.float32]] = []
+    y_list: list[npt.NDArray[np.float32]] = []
     for file in image_files:
         image = Image.open(fp=file)
         image = image.resize(size=NEW_PICTURE_SHAPE)
-        images.append(np.array(image, dtype=np.uint8))
+        images.append(np.array(image, dtype=np.float32))
         image.close()
-        
-        features: npt.NDArray[np.uint8] = np.array(
-            [int(feature) for feature in re.findall(r'\d+', file)],
-            dtype=np.uint8
-        )
-        
-        if features.shape != (4, ):
-            features = np.insert(features, -1, 4)
-        features = features[:-1]
-            
-        feature_list.append(features)
-        
-    image_array: npt.NDArray[np.uint8] = np.stack(images)
-    feature_array: npt.NDArray[np.uint8] = np.stack(feature_list)
-    y: npt.NDArray[np.uint8] = feature_array[:, 0].reshape(-1, 1)
-    x: npt.NDArray[np.uint8] = feature_array[:, 1:]
 
-    return image_array, x, y
+        y: npt.NDArray[np.float32] = np.array(
+            [int(feature) for feature in re.findall(r'\d+', file)],
+            dtype=np.float32
+        )
+
+        if y.shape != (4, ):
+            y = np.insert(y, -1, 4)
+        y = y[:-1]
+
+        y_list.append(y)
+
+    image_array: npt.NDArray[np.float32] = np.stack(images)
+    y_array: npt.NDArray[np.float32] = np.stack(y_list)
+
+    return image_array, y_array
