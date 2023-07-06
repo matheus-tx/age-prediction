@@ -98,3 +98,6 @@ data/
 
 # Connection config
 config/connection.yaml
+
+# Zip files
+*.zip
