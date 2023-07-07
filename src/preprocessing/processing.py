@@ -119,7 +119,10 @@ def _train_val_test_split(x: npt.NDArray[np.float32],
     """
     m: int = y.shape[0]
 
-    x, y_age, y_gender, y_race = _scale(x, y)
+    # x, y_age, y_gender, y_race = _scale(x, y)
+    y_age = y[:, 0].reshape(-1, 1)
+    y_gender = y[:, 1].reshape(-1, 1)
+    y_race = y[:, 2].reshape(-1, 1)
 
     # Shuffle indexes
     indexes: npt.NDArray[np.int_] = np.array(list(range(m)))
@@ -187,3 +190,10 @@ def preprocess(project_config: DictConfig,
                                              config=run_config)
 
     return(dataset)
+
+
+def augment(x: npt.NDArray[np.float32]):
+    """Augment
+
+    Augment data, performing random flips, """
+    pass

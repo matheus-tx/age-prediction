@@ -28,21 +28,25 @@ def negloglik(y: tf.Tensor, p_y: Distribution) -> tf.Tensor:
 
 class PoissonAgePredictor:
     def __init__(self: Self,
-                 data: Dataset,
+                 train_set: Dataset,
+                 #  val_set,
+                 #  test_set,
+                 dataset,
                  config: DictConfig) -> Self:
         # Attributes
-        self.x: TrainValTest = data.x
-        self.y_age: TrainValTest = data.y_age
-        self.y_gender: TrainValTest = data.y_gender
-        self.y_race: TrainValTest = data.y_race
+        self.train_set = train_set
+        # self.val_set = val_set
+        # self.test_set = test_set
+
+        self.dataset = dataset
 
         # Model definition
-        input_shape: tuple = self.x.train.shape[1:]
-        input: KerasTensor = Input(shape=input_shape, name='input')
+        input_shape: tuple = self.train_set.element_spec[0].shape[1:]
+        input_: KerasTensor = Input(shape=input_shape, name='input')
 
         vgg19: KerasTensor = VGG19(input_shape=input_shape,
                                    include_top=False,
-                                   weights='imagenet')(input)
+                                   weights='imagenet')(input_)
         vgg19.trainable = False
         flatten: KerasTensor = Flatten(name='flatten')(vgg19)
         fc1: KerasTensor = Dense(2048, activation="relu", name="fc1")(flatten)
@@ -60,7 +64,7 @@ class PoissonAgePredictor:
             name='output'
         )(rate)
         self.model: Model = Model(
-            inputs=input,
+            inputs=input_,
             outputs=output
         )
 
@@ -74,13 +78,22 @@ class PoissonAgePredictor:
 
     def fit(self: Self) -> None:
         self.history = self.model.fit(
-            x=self.x.train,
-            y=self.y_age.train,
-            batch_size=64,
-            validation_data=[self.x.val, self.y_age.val],
-            epochs=10,
-            callbacks=[ReduceLROnPlateau()]
+            self.train_set,
+            # steps_per_epoch=self.train_set.n // self.train_set.batch_size,
+            # validation_data=self.val_set,
+            # validation_steps=self.val_set.n // self.val_set.batch_size,
+            # epochs=10,
+            # callbacks=[ReduceLROnPlateau()]
         )
+
+        # self.history = self.model.fit(
+        #     x=self.dataset.x.train,
+        #     y=self.dataset.y_age.train,
+        #     validation_data=[self.dataset.x.val, self.dataset.y_age.val],
+        #     epochs=10,
+        #     callbacks=[ReduceLROnPlateau()],
+        #     batch_size=64
+        # )
 
     def predict(self: Self,
                 x_pred: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:

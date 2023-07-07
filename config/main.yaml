@@ -1,5 +1,8 @@
 data:
   path: 'data'
+  train: '${data.path}/train'
+  val: '${data.path}/val'
+  test: '${data.path}/test'
 
 src:
   path: 'src'
