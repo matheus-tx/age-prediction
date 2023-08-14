@@ -1,4 +1,5 @@
 import os
+import random
 import re
 from glob import glob
 
@@ -6,11 +7,29 @@ from omegaconf import DictConfig
 from PIL import Image
 
 
+def _clear_train_test_val(directory: str) -> None:
+    sets = ['train', 'test', 'val']
+    for set_ in sets:
+        print(f'Clearing {set_} set...')
+        files: list[str] = os.listdir(f'{directory}/{set_}')
+        for file in files:
+            os.remove(f'{directory}/{set_}/{file}')
+    print('All previous files cleared!')
+
+
 def split_train_val_test(project_config: DictConfig,
-                         run_config: DictConfig):
-    # TODO: delete all files in training, validation and test paths before splitting
-    # dataset.
+                         run_config: DictConfig,
+                         seed: int | None = None):
+    # Clear previous train, val and test sets before running
+    _clear_train_test_val(project_config.data.path)
+
+    # Randomly suffle images
     image_files: list[str] = glob(f'{project_config.data.path}/*.jpg')
+    if seed is not None:
+        random.Random(seed).shuffle(image_files)
+    else:
+        random.shuffle(image_files)
+
     n_images: int = len(image_files)
     val_frac: float = run_config.val_size
     test_frac: float = run_config.test_size
@@ -22,9 +41,9 @@ def split_train_val_test(project_config: DictConfig,
     for filename in image_files:
         image = Image.open(fp=filename)
 
-        age, gender, race = (
+        age, gender, race = [
             int(label) for label in re.findall(r'\d+', filename)
-        )[:2]
+        ][:3]
 
         if i < train_size:
             if not os.path.exists(project_config.data.train):
