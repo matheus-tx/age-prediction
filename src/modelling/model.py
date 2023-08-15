@@ -1,21 +1,16 @@
 import os
 
-import numpy as np
-import numpy.typing as npt
 import tensorflow as tf
-from keras.activations import softplus
-from keras.applications import VGG19, EfficientNetV2L
+from keras.applications import VGG16
 from keras.callbacks import ReduceLROnPlateau
-from keras.layers import Dense, Flatten, Input
+from keras.layers import Dense, Flatten, Input, Rescaling
+from keras.losses import mean_absolute_error
 from keras.models import Model
 from keras.optimizers import AdamW
-from keras.src.engine.keras_tensor import KerasTensor
 from omegaconf import DictConfig
 from tensorflow_probability.python.distributions import Distribution, Poisson
 from tensorflow_probability.python.layers import DistributionLambda
 from typing_extensions import Self
-
-from preprocessing import Dataset, TrainValTest
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
@@ -26,77 +21,61 @@ def negloglik(y: tf.Tensor, p_y: Distribution) -> tf.Tensor:
     return negloglik
 
 
-class PoissonAgePredictor:
-    def __init__(self: Self,
-                 train_set: Dataset,
-                 #  val_set,
-                 #  test_set,
-                 dataset,
-                 config: DictConfig) -> Self:
-        # Attributes
-        self.train_set = train_set
-        # self.val_set = val_set
-        # self.test_set = test_set
+class AgePredictor:
+    def __init__(self, input_shape: tuple[int, int]):
+        self.input_shape: tuple[int, int] = input_shape
 
-        self.dataset = dataset
+        # Define model
+        self._input_ = Input(shape=input_shape, name='input')
+        self._rescaling = Rescaling(scale=1. / 255, name='rescaling')(self._input_)
+        self._vgg16 = VGG16(input_shape=input_shape,
+                            include_top=False,
+                            weights='imagenet')(self._rescaling)
+        self._vgg16.trainable = False
+        self._flatten = Flatten(name='flatten')(self._vgg16)
+        self._fc1 = Dense(4096, activation="relu", name="fc1")(self._flatten)
+        self._fc2 = Dense(4096, activation="relu", name="fc2")(self._fc1)
+        self._output = Dense(units=1, name='output')(self._fc2)
 
-        # Model definition
-        input_shape: tuple = self.train_set.element_spec[0].shape[1:]
-        input_: KerasTensor = Input(shape=input_shape, name='input')
-
-        vgg19: KerasTensor = VGG19(input_shape=input_shape,
-                                   include_top=False,
-                                   weights='imagenet')(input_)
-        vgg19.trainable = False
-        flatten: KerasTensor = Flatten(name='flatten')(vgg19)
-        fc1: KerasTensor = Dense(2048, activation="relu", name="fc1")(flatten)
-        fc2: KerasTensor = Dense(2048, activation="relu", name="fc2")(fc1)
-        rate: KerasTensor = Dense(
-            units=1,
-            activation=softplus,
-            name='rate'
-        )(fc2)
-        output: KerasTensor = DistributionLambda(
-            lambda t: Poisson(rate=t,
-                              validate_args=True,
-                              allow_nan_stats=False),
-            convert_to_tensor_fn=Distribution.mode,
-            name='output'
-        )(rate)
-        self.model: Model = Model(
-            inputs=input_,
-            outputs=output
+        self.model = Model(
+            inputs=self._input_,
+            outputs=self._output
         )
 
-        # Compile model
         self.model.compile(
             optimizer=AdamW(
-                learning_rate=1e-4
+                learning_rate=1e-4,
+                weight_decay=0.004
             ),
-            loss=negloglik
+            loss=mean_absolute_error
         )
 
-    def fit(self: Self) -> None:
-        self.history = self.model.fit(
-            self.train_set,
-            # steps_per_epoch=self.train_set.n // self.train_set.batch_size,
-            # validation_data=self.val_set,
-            # validation_steps=self.val_set.n // self.val_set.batch_size,
-            # epochs=10,
-            # callbacks=[ReduceLROnPlateau()]
+    def fit(self, training_data, validation_data):
+        self.top_history = self.model.fit(
+            x=training_data,
+            batch_size=64,
+            validation_data=validation_data,
+            epochs=10,
+            callbacks=[ReduceLROnPlateau(patience=3)]
         )
 
-        # self.history = self.model.fit(
-        #     x=self.dataset.x.train,
-        #     y=self.dataset.y_age.train,
-        #     validation_data=[self.dataset.x.val, self.dataset.y_age.val],
-        #     epochs=10,
-        #     callbacks=[ReduceLROnPlateau()],
-        #     batch_size=64
-        # )
+        self._vgg16.trainable = True
+        self.vgg16_history = self.model.fit(
+            x=training_data,
+            batch_size=64,
+            validation_data=validation_data,
+            epochs=5
+        )
 
-    def predict(self: Self,
-                x_pred: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
-        y_pred = self.model.predict(x_pred)
+    def evaluate(self, test_data):
+        evaluation = self.model.evaluate(
+            x=test_data,
+            batch_size=64
+        )
+
+        return evaluation
+
+    def predict(self, x):
+        y_pred = self.model.predict(x)
 
         return y_pred
