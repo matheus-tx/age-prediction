@@ -1,8 +1,11 @@
 import os
 import re
 
+from keras.utils import image_dataset_from_directory
+from omegaconf import DictConfig
 
-def make_labels(set_: str, path: str, what: str) -> list[int]:
+
+def _make_labels(set_: str, path: str, what: str) -> list[int]:
     filenames: str = list(os.walk(f'{path}/{set_}'))[0][2]
     filenames.sort()
 
@@ -18,3 +21,19 @@ def make_labels(set_: str, path: str, what: str) -> list[int]:
                          for filename in filenames]
 
     return labels
+
+
+def make_generator(project_config: DictConfig,
+                   run_config: DictConfig,
+                   set_: str,
+                   what: str):
+    labels = _make_labels(set_=set_, path=project_config.data.path, what=what)
+
+    dataset = image_dataset_from_directory(
+        directory=f'{project_config.data.path}/{set_}',
+        labels=labels,
+        batch_size=run_config.batch_size,
+        image_size=(run_config.image_size, run_config.image_size)
+    )
+
+    return dataset
