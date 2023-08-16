@@ -1,3 +1,4 @@
+import math
 import os
 
 import tensorflow as tf
@@ -50,12 +51,12 @@ class AgePredictor:
             loss=mean_absolute_error
         )
 
-    def fit(self, training_data, validation_data):
+    def fit(self, training_data, validation_data, n_epochs):
         self.top_history = self.model.fit(
             x=training_data,
             batch_size=64,
             validation_data=validation_data,
-            epochs=10,
+            epochs=n_epochs,
             callbacks=[ReduceLROnPlateau(patience=3)]
         )
 
@@ -64,7 +65,7 @@ class AgePredictor:
             x=training_data,
             batch_size=64,
             validation_data=validation_data,
-            epochs=5
+            epochs=math.ceil(n_epochs / 2)
         )
 
     def evaluate(self, test_data):

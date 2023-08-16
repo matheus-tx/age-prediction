@@ -33,6 +33,10 @@ if __name__ == '__main__':
                         '--train-val-test-split',
                         help='Split training, validation and test sets',
                         action=argparse.BooleanOptionalAction)
+    parser.add_argument('-e',
+                        '--n-epochs',
+                        help='Number of epochs',
+                        type=int)
     run_config: DictConfig = DictConfig(vars(parser.parse_args()))
 
     split_train_val_test(project_config=project_config,
@@ -49,7 +53,7 @@ if __name__ == '__main__':
                          what='age')
 
     model = AgePredictor(input_shape=train.element_spec[0].shape[1:])
-    model.fit(train, val)
+    model.fit(train, val, run_config.n_epochs)
 
     pass
 
