@@ -1,8 +1,9 @@
 import os
 import re
 
-from keras.utils import image_dataset_from_directory
+from keras.utils import image_dataset_from_directory, img_to_array
 from omegaconf import DictConfig
+from PIL import Image
 
 
 def _make_labels(set_: str, path: str, what: str) -> list[int]:
@@ -37,3 +38,11 @@ def make_generator(project_config: DictConfig,
     )
 
     return dataset
+
+
+def load_image(path: str, size: int):
+    image = Image.open(path)
+    image = image.resize(size=size)
+    image_tensor = img_to_array(image)
+
+    return image_tensor
