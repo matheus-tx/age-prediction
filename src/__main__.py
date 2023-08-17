@@ -4,7 +4,7 @@ import hydra
 from omegaconf import DictConfig
 
 from modelling.model import AgePredictor
-from preprocessing import make_generator, split_train_val_test
+from preprocessing import load_image, make_generator, split_train_val_test
 
 if __name__ == '__main__':
     # Load configs
@@ -37,6 +37,10 @@ if __name__ == '__main__':
                         '--n-epochs',
                         help='Number of epochs',
                         type=int)
+    parser.add_argument('-p',
+                        '--image-path',
+                        help='Path to image to predict',
+                        type=str)
     run_config: DictConfig = DictConfig(vars(parser.parse_args()))
 
     split_train_val_test(project_config=project_config,
@@ -52,43 +56,21 @@ if __name__ == '__main__':
                          set_='val',
                          what='age')
 
+    # Train model
     model = AgePredictor(input_shape=train.element_spec[0].shape[1:])
     model.fit(train, val, run_config.n_epochs)
 
-    pass
+    # Test model
+    test = make_generator(project_config=project_config,
+                          run_config=run_config,
+                          set_='test',
+                          what='age')
+    error = model.evaluate(test_data=test)
+    print(f'Mean error of model on test set is {error:.2f} years.')
 
-    # Load data
-    # train_df, val_df, test_df = make_dataframe(
-    #     project_config=project_config,
-    #     run_config=run_config
-    # )
-
-    # split_data(project_config=project_config, run_config=run_config)
-
-    # train_set = create_flow(df=train,
-    #                         project_config=project_config,
-    #                         which_set='train'age_dataset_from_directory(
-    # directory=project_config.data.train,
-    # labels='inferred',
-    # label_mode='int',
-    # image_size=(100, 100),
-    # batch_size=64)
-    # val_set = create_flow(df=val,
-    #                       project_config=project_config,
-    #                       which_set='val')
-    # test_set = create_flow(df=test,
-    #                        project_config=project_config,
-    #                        which_set='test')
-    # dataset: Dataset = preprocess(project_config=project_config,
-    #                               run_config=run_config)
-
-    # train = load_images(project_config.data.train)
-
-    # model = PoissonAgePredictor(train_set=train,
-    #                             # val_set=val_set,
-    #                             # test_set=test_set,
-    #                             # dataset=dataset,
-    #                             config=run_config)
-    # model.fit()
+    # Predict
+    image_to_predict = load_image(run_config.path, model.input_shape)
+    prediction = model.predict(image_to_predict)
+    print(f'Predicted age for image is {prediction} years.')
 
     pass
