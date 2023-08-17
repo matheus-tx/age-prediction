@@ -52,9 +52,11 @@ class AgePredictor:
         )
 
     def fit(self, training_data, validation_data, n_epochs):
+        batch_size = training_data._batch_size.numpy()
+
         self.top_history = self.model.fit(
             x=training_data,
-            batch_size=64,
+            batch_size=batch_size,
             validation_data=validation_data,
             epochs=n_epochs,
             callbacks=[ReduceLROnPlateau(patience=3)]
@@ -63,7 +65,7 @@ class AgePredictor:
         self._vgg16.trainable = True
         self.vgg16_history = self.model.fit(
             x=training_data,
-            batch_size=64,
+            batch_size=batch_size,
             validation_data=validation_data,
             epochs=math.ceil(n_epochs / 2)
         )
@@ -71,7 +73,7 @@ class AgePredictor:
     def evaluate(self, test_data):
         evaluation = self.model.evaluate(
             x=test_data,
-            batch_size=64
+            batch_size=test_data._batch_size.numpy()
         )
 
         return evaluation
