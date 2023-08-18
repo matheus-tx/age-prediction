@@ -1,6 +1,7 @@
 import os
 import re
 
+import tensorflow as tf
 from keras.utils import image_dataset_from_directory, img_to_array
 from omegaconf import DictConfig
 from PIL import Image
@@ -42,7 +43,7 @@ def make_generator(project_config: DictConfig,
 
 def load_image(path: str, size: int):
     image = Image.open(path)
-    image = image.resize(size=size)
-    image_tensor = img_to_array(image)
+    image = image.resize(size=(size, size))
+    image_tensor = tf.expand_dims(img_to_array(image), axis=0)
 
     return image_tensor
