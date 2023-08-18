@@ -96,8 +96,12 @@ outputs
 # Data folder
 data/
 
+# Models
+models/*
+
 # Connection config
 config/connection.yaml
 
-# Zip files
+# Compressed files files
 *.zip
+*.tar.gz
