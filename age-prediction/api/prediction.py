@@ -2,9 +2,8 @@ import os
 
 from keras.models import load_model
 from keras.utils import image_dataset_from_directory
-from scipy.stats import nbinom, poisson
-
 from preprocessing import load_image
+from scipy.stats import nbinom, poisson
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 

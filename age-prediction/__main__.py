@@ -1,9 +1,8 @@
 import argparse
 
 import hydra
-from omegaconf import DictConfig
-
 from modelling.model import AgePredictor
+from omegaconf import DictConfig
 from preprocessing import load_image, make_generator, split_train_val_test
 
 if __name__ == '__main__':
