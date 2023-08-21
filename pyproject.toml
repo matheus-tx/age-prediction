@@ -5,6 +5,7 @@ description = "Model for age prediction"
 authors = ["matheus-tx <matheus.tx30@gmail.com>"]
 license = "None, I think"
 readme = "README.md"
+packages = [{"age-prediction"}]
 
 [tool.poetry.dependencies]
 python = ">=3.10, <3.12"
