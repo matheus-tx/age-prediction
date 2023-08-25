@@ -1,13 +1,16 @@
 import os
 
-from keras.models import load_model
-from keras.utils import image_dataset_from_directory
+from keras.models import Model, load_model
+from keras.utils import get_file, image_dataset_from_directory
 from preprocessing import load_image
 from scipy.stats import nbinom, poisson
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 ALLOWED_MODEL_TYPES: list[str] = ['regular', 'poisson', 'negative_binomial']
+BASE_WEIGHTS_PATH = (
+    'https://github.com/matheus-tx/age-prediction/releases/download/release/'
+)
 
 
 def predict(images: str, model_type: str, coverage: float = 0):
@@ -20,7 +23,17 @@ def predict(images: str, model_type: str, coverage: float = 0):
         raise ValueError(msg)
 
     # Load model
-    model = load_model(f'models/age_predictor_{model_type}.keras')
+    file_name = f'age_predictor_{model_type}.keras.zip'
+    model_path: str = get_file(fname=file_name,
+                               origin=BASE_WEIGHTS_PATH + file_name,
+                               extract=True,
+                               cache_subdir='models/age-predictor')
+    if model_type == 'poisson':
+        model: Model = load_model(
+            model_path.replace('.zip', '')
+        )
+    else:
+        model: Model = load_model(model_path.replace('.zip', ''))
     image_size = model.layers[0].input.shape[1]
 
     # Load images
