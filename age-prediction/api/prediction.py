@@ -1,9 +1,11 @@
 import os
 
+from api.poisson_model import make_poisson_model
 from keras.models import Model, load_model
 from keras.utils import get_file, image_dataset_from_directory
-from preprocessing import load_image
 from scipy.stats import nbinom, poisson
+
+from preprocessing import load_image
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
@@ -11,6 +13,7 @@ ALLOWED_MODEL_TYPES: list[str] = ['regular', 'poisson', 'negative_binomial']
 BASE_WEIGHTS_PATH = (
     'https://github.com/matheus-tx/age-prediction/releases/download/release/'
 )
+IMAGE_SIZE = 200
 
 
 def predict(images: str, model_type: str, coverage: float = 0):
@@ -29,20 +32,17 @@ def predict(images: str, model_type: str, coverage: float = 0):
                                extract=True,
                                cache_subdir='models/age-predictor')
     if model_type == 'poisson':
-        model: Model = load_model(
-            model_path.replace('.zip', '')
-        )
+        model: Model = make_poisson_model(input_shape=(IMAGE_SIZE, IMAGE_SIZE, 3))
     else:
         model: Model = load_model(model_path.replace('.zip', ''))
-    image_size = model.layers[0].input.shape[1]
 
     # Load images
     if os.path.isdir(images):
         X = image_dataset_from_directory(directory=images,
                                          labels=None,
-                                         image_size=(image_size, image_size))
+                                         image_size=(IMAGE_SIZE, IMAGE_SIZE))
     else:
-        X = load_image(path=images, size=image_size)
+        X = load_image(path=images, size=IMAGE_SIZE)
 
     # Predict age
     if coverage == 0:

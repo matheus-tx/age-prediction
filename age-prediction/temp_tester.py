@@ -1,7 +1,7 @@
 from api.prediction import predict
 
 y_pred = predict(
-    images='/home/matheust/projects/age-prediction/data/test/18965_20_1_0.jpg',
+    images='data/test/8802_53_0_0.jpg',
     model_type='regular'
 )
 

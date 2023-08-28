@@ -1,6 +1,9 @@
 from keras.activations import relu, softplus
 from keras.layers import Dense, Flatten, Input, Rescaling
+from keras.models import Model
 from keras_vggface.vggface import VGGFace
+from tensorflow_probability.python.distributions import Distribution, Poisson
+from tensorflow_probability.python.layers import DistributionLambda
 
 
 def negloglik(y, p_y):
@@ -25,4 +28,17 @@ def make_poisson_model(input_shape):
     fc2 = Dense(4096, activation=relu, name='fc2')(fc1)
     rate = Dense(1, activation=softplus, name='rate')(fc2)
 
-    del rate
+    output = DistributionLambda(
+        lambda t: Poisson(
+            rate=t,
+            validate_args=True,
+            allow_nan_stats=False,
+            force_probs_to_zero_outside_support=True
+        ),
+        convert_to_tensor_fn=Distribution.mode,
+        name='output'
+    )(rate)
+
+    model = Model(inputs=input_, outputs=output)
+
+    return model
