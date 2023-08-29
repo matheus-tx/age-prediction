@@ -3,9 +3,8 @@ import os
 from api.poisson_model import make_poisson_model
 from keras.models import Model, load_model
 from keras.utils import get_file, image_dataset_from_directory
-from scipy.stats import nbinom, poisson
-
 from preprocessing import load_image
+from scipy.stats import nbinom, poisson
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
@@ -33,6 +32,7 @@ def predict(images: str, model_type: str, coverage: float = 0):
                                cache_subdir='models/age-predictor')
     if model_type == 'poisson':
         model: Model = make_poisson_model(input_shape=(IMAGE_SIZE, IMAGE_SIZE, 3))
+        model.load_weights(model_path.replace('.zip', ''))
     else:
         model: Model = load_model(model_path.replace('.zip', ''))
 
@@ -56,8 +56,10 @@ def predict(images: str, model_type: str, coverage: float = 0):
             )
             raise ValueError(msg)
         y_params = model(X)
-        if model == 'poisson':
-            y_pred = poisson.interval(coverage, mu=y_params)
+        mu = y_params[0].numpy()
+        if model_type == 'poisson':
+            y_pred = poisson.interval(coverage, mu=mu)
+            y_pred = (y_pred[0][0], y_pred[1][0])
         else:
             pass
         # TODO: Add negative binomial distribution estimation.

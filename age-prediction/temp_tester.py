@@ -1,8 +1,9 @@
 from api.prediction import predict
 
 y_pred = predict(
-    images='data/test/8802_53_0_0.jpg',
-    model_type='regular'
+    images='data/test/19168_18_0_3.jpg',
+    model_type='poisson',
+    coverage=0.5
 )
 
 print(y_pred)
